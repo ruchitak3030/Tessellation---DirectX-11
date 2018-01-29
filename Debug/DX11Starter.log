@@ -1,3 +1,7 @@
-﻿  Main.cpp
-  DX11Starter.vcxproj -> C:\Users\ruchi\Desktop\RIT\Sem 2\Game Graphics Programming\DX11Starter\Debug\DX11Starter.exe
-  DX11Starter.vcxproj -> C:\Users\ruchi\Desktop\RIT\Sem 2\Game Graphics Programming\DX11Starter\Debug\DX11Starter.pdb (Full PDB)
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(387,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (DX11Starter.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+C:\Users\ruchi\Desktop\Graphics\Tessellation---DirectX-11\DomainShader.hlsl(40,2): warning X3206: implicit truncation of vector type
+  
+  compilation object save succeeded; see C:\Users\ruchi\Desktop\Graphics\Tessellation---DirectX-11\Debug\DomainShader.cso
+C:\Users\ruchi\Desktop\Graphics\Tessellation---DirectX-11\HullShader.hlsl(42,47-48): error X4576: Input signature parameter SV_POSITION (1-based Entry 0) type must be float32 and mask must be xyzw.
+  
+  compilation failed; no code produced

@@ -4,14 +4,7 @@
 // For the DirectX Math library
 using namespace DirectX;
 
-// --------------------------------------------------------
-// Constructor
-//
-// DXCore (base class) constructor will set up underlying fields.
-// DirectX itself, and our window, are not ready yet!
-//
-// hInstance - the application's OS-level handle (unique ID)
-// --------------------------------------------------------
+
 Game::Game(HINSTANCE hInstance)
 	: DXCore( 
 		hInstance,		   // The application's handle
@@ -33,11 +26,7 @@ Game::Game(HINSTANCE hInstance)
 #endif
 }
 
-// --------------------------------------------------------
-// Destructor - Clean up anything our game has created:
-//  - Release all DirectX objects created here
-//  - Delete any objects to prevent memory leaks
-// --------------------------------------------------------
+
 Game::~Game()
 {
 	// Release any (and all!) DirectX objects
@@ -51,31 +40,17 @@ Game::~Game()
 	delete pixelShader;
 }
 
-// --------------------------------------------------------
-// Called once per program, after DirectX and the window
-// are initialized but before the game loop.
-// --------------------------------------------------------
+
 void Game::Init()
 {
-	// Helper methods for loading shaders, creating some basic
-	// geometry to draw and some simple camera matrices.
-	//  - You'll be expanding and/or replacing these later
 	LoadShaders();
 	CreateMatrices();
 	CreateBasicGeometry();
 
-	// Tell the input assembler stage of the pipeline what kind of
-	// geometric primitives (points, lines or triangles) we want to draw.  
-	// Essentially: "What kind of shape should the GPU draw with our data?"
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }
 
-// --------------------------------------------------------
-// Loads shaders from compiled shader object (.cso) files using
-// my SimpleShader wrapper for DirectX shader manipulation.
-// - SimpleShader provides helpful methods for sending
-//   data to individual variables on the GPU
-// --------------------------------------------------------
+
 void Game::LoadShaders()
 {
 	vertexShader = new SimpleVertexShader(device, context);
@@ -86,42 +61,25 @@ void Game::LoadShaders()
 	if(!pixelShader->LoadShaderFile(L"Debug/PixelShader.cso"))	
 		pixelShader->LoadShaderFile(L"PixelShader.cso");
 
-	// You'll notice that the code above attempts to load each
-	// compiled shader file (.cso) from two different relative paths.
+	hullShader = new SimpleHullShader(device, context);
+	if (!hullShader->LoadShaderFile(L"Debug/HullShader.cso"))
+		hullShader->LoadShaderFile(L"HullShader.cso");
 
-	// This is because the "working directory" (where relative paths begin)
-	// will be different during the following two scenarios:
-	//  - Debugging in VS: The "Project Directory" (where your .cpp files are) 
-	//  - Run .exe directly: The "Output Directory" (where the .exe & .cso files are)
+	domainShader = new SimpleDomainShader(device, context);
+	if (!domainShader->LoadShaderFile(L"Debug/DomainShader.cso"))
+		domainShader->LoadShaderFile(L"DomainShader.cso");
 
-	// Checking both paths is the easiest way to ensure both 
-	// scenarios work correctly, although others exist
 }
 
 
 
-// --------------------------------------------------------
-// Initializes the matrices necessary to represent our geometry's 
-// transformations and our 3D camera
-// --------------------------------------------------------
+
 void Game::CreateMatrices()
 {
-	// Set up world matrix
-	// - In an actual game, each object will need one of these and they should
-	//   update when/if the object moves (every frame)
-	// - You'll notice a "transpose" happening below, which is redundant for
-	//   an identity matrix.  This is just to show that HLSL expects a different
-	//   matrix (column major vs row major) than the DirectX Math library
+	
 	XMMATRIX W = XMMatrixIdentity();
 	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(W)); // Transpose for HLSL!
 
-	// Create the View matrix
-	// - In an actual game, recreate this matrix every time the camera 
-	//    moves (potentially every frame)
-	// - We're using the LOOK TO function, which takes the position of the
-	//    camera and the direction vector along which to look (as well as "up")
-	// - Another option is the LOOK AT function, to look towards a specific
-	//    point in 3D space
 	XMVECTOR pos = XMVectorSet(0, 0, -5, 0);
 	XMVECTOR dir = XMVectorSet(0, 0, 1, 0);
 	XMVECTOR up  = XMVectorSet(0, 1, 0, 0);
@@ -131,9 +89,7 @@ void Game::CreateMatrices()
 		up);     // "Up" direction in 3D space (prevents roll)
 	XMStoreFloat4x4(&viewMatrix, XMMatrixTranspose(V)); // Transpose for HLSL!
 
-	// Create the Projection matrix
-	// - This should match the window's aspect ratio, and also update anytime
-	//   the window resizes (which is already happening in OnResize() below)
+	
 	XMMATRIX P = XMMatrixPerspectiveFovLH(
 		0.25f * 3.1415926535f,		// Field of View Angle
 		(float)width / height,		// Aspect ratio
@@ -143,20 +99,13 @@ void Game::CreateMatrices()
 }
 
 
-// --------------------------------------------------------
-// Creates the geometry we're going to draw - a single triangle for now
-// --------------------------------------------------------
 void Game::CreateBasicGeometry()
 {
-	// Create some temporary variables to represent colors
-	// - Not necessary, just makes things more readable
+	
 	XMFLOAT4 red	= XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 	XMFLOAT4 green	= XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 	XMFLOAT4 blue	= XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
 
-	// Set up the vertices of the triangle we would like to draw
-	// - We're going to copy this array, exactly as it exists in memory
-	//    over to a DirectX-controlled data structure (the vertex buffer)
 	Vertex vertices[] = 
 	{
 		{ XMFLOAT3(+0.0f, +1.0f, +0.0f), red },
@@ -164,17 +113,9 @@ void Game::CreateBasicGeometry()
 		{ XMFLOAT3(-1.5f, -1.0f, +0.0f), green },
 	};
 		
-	// Set up the indices, which tell us which vertices to use and in which order
-	// - This is somewhat redundant for just 3 vertices (it's a simple example)
-	// - Indices are technically not required if the vertices are in the buffer 
-	//    in the correct order and each one will be used exactly once
-	// - But just to see how it's done...
 	int indices[] = { 0, 1, 2 };
 
 
-	// Create the VERTEX BUFFER description -----------------------------------
-	// - The description is created on the stack because we only need
-	//    it to create the buffer.  The description is then useless.
 	D3D11_BUFFER_DESC vbd;
 	vbd.Usage				= D3D11_USAGE_IMMUTABLE;
 	vbd.ByteWidth			= sizeof(Vertex) * 3;       // 3 = number of vertices in the buffer
@@ -183,20 +124,12 @@ void Game::CreateBasicGeometry()
 	vbd.MiscFlags			= 0;
 	vbd.StructureByteStride	= 0;
 
-	// Create the proper struct to hold the initial vertex data
-	// - This is how we put the initial data into the buffer
 	D3D11_SUBRESOURCE_DATA initialVertexData;
 	initialVertexData.pSysMem = vertices;
 
-	// Actually create the buffer with the initial data
-	// - Once we do this, we'll NEVER CHANGE THE BUFFER AGAIN
 	device->CreateBuffer(&vbd, &initialVertexData, &vertexBuffer);
 
 
-
-	// Create the INDEX BUFFER description ------------------------------------
-	// - The description is created on the stack because we only need
-	//    it to create the buffer.  The description is then useless.
 	D3D11_BUFFER_DESC ibd;
 	ibd.Usage               = D3D11_USAGE_IMMUTABLE;
 	ibd.ByteWidth           = sizeof(int) * 3;         // 3 = number of indices in the buffer
@@ -205,8 +138,6 @@ void Game::CreateBasicGeometry()
 	ibd.MiscFlags           = 0;
 	ibd.StructureByteStride = 0;
 
-	// Create the proper struct to hold the initial index data
-	// - This is how we put the initial data into the buffer
 	D3D11_SUBRESOURCE_DATA initialIndexData;
 	initialIndexData.pSysMem = indices;
 
@@ -216,10 +147,6 @@ void Game::CreateBasicGeometry()
 }
 
 
-// --------------------------------------------------------
-// Handle resizing DirectX "stuff" to match the new window size.
-// For instance, updating our projection matrix's aspect ratio.
-// --------------------------------------------------------
 void Game::OnResize()
 {
 	// Handle base-level DX resize stuff
@@ -234,9 +161,6 @@ void Game::OnResize()
 	XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
 }
 
-// --------------------------------------------------------
-// Update your game here - user input, move objects, AI, etc.
-// --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
 	// Quit if the escape key is pressed
@@ -244,17 +168,12 @@ void Game::Update(float deltaTime, float totalTime)
 		Quit();
 }
 
-// --------------------------------------------------------
-// Clear the screen, redraw everything, present to the user
-// --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
 	// Background color (Cornflower Blue in this case) for clearing
 	const float color[4] = {0.4f, 0.6f, 0.75f, 0.0f};
 
-	// Clear the render target and depth buffer (erases what's on the screen)
-	//  - Do this ONCE PER FRAME
-	//  - At the beginning of Draw (before drawing *anything*)
+	
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView, 
@@ -262,40 +181,30 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
-	// Send data to shader variables
-	//  - Do this ONCE PER OBJECT you're drawing
-	//  - This is actually a complex process of copying data to a local buffer
-	//    and then copying that entire buffer to the GPU.  
-	//  - The "SimpleShader" class handles all of that for you.
-	vertexShader->SetMatrix4x4("world", worldMatrix);
-	vertexShader->SetMatrix4x4("view", viewMatrix);
-	vertexShader->SetMatrix4x4("projection", projectionMatrix);
 
-	// Once you've set all of the data you care to change for
-	// the next draw call, you need to actually send it to the GPU
-	//  - If you skip this, the "SetMatrix" calls above won't make it to the GPU!
 	vertexShader->CopyAllBufferData();
-
-	// Set the vertex and pixel shaders to use for the next Draw() command
-	//  - These don't technically need to be set every frame...YET
-	//  - Once you start applying different shaders to different objects,
-	//    you'll need to swap the current shaders before each draw
 	vertexShader->SetShader();
-	pixelShader->SetShader();
 
-	// Set buffers in the input assembler
-	//  - Do this ONCE PER OBJECT you're drawing, since each object might
-	//    have different geometry.
+	domainShader->SetFloat("tessellationAmount", 15.0f);
+	domainShader->SetShader();
+	domainShader->CopyAllBufferData();
+
+	domainShader->SetMatrix4x4("world", worldMatrix);
+	domainShader->SetMatrix4x4("view", viewMatrix);
+	domainShader->SetMatrix4x4("projection", projectionMatrix);
+	domainShader->SetShader();
+	domainShader->CopyAllBufferData();
+
+	pixelShader->SetShader();
+	pixelShader->CopyAllBufferData();
+
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-	// Finally do the actual drawing
-	//  - Do this ONCE PER OBJECT you intend to draw
-	//  - This will use all of the currently set DirectX "stuff" (shaders, buffers, etc)
-	//  - DrawIndexed() uses the currently set INDEX BUFFER to look up corresponding
-	//     vertices in the currently set VERTEX BUFFER
+	
+
 	context->DrawIndexed(
 		3,     // The number of indices to use (we could draw a subset if we wanted)
 		0,     // Offset to the first index we want to use
@@ -312,11 +221,6 @@ void Game::Draw(float deltaTime, float totalTime)
 
 #pragma region Mouse Input
 
-// --------------------------------------------------------
-// Helper method for mouse clicking.  We get this information
-// from the OS-level messages anyway, so these helpers have
-// been created to provide basic mouse input if you want it.
-// --------------------------------------------------------
 void Game::OnMouseDown(WPARAM buttonState, int x, int y)
 {
 	// Add any custom code here...
