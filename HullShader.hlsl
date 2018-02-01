@@ -7,7 +7,7 @@ cbuffer TessellatorBuffer
 struct VertexToHull
 {
 
-	float3 position		: SV_POSITION;	// XYZW position (System Value Position)
+	float3 position		: POSITION;		// XYZW position (System Value Position)
 	float4 color		: COLOR;        // RGBA color
 };
 
@@ -18,6 +18,14 @@ struct VertexToHull
 //	// TODO: change/add other stuff
 //};
 
+// Output patch constant data.
+struct HS_CONSTANT_DATA_OUTPUT
+{
+	float EdgeTessFactor[3]			: SV_TessFactor; // e.g. would be [4] for a quad domain
+	float InsideTessFactor			: SV_InsideTessFactor; // e.g. would be Inside[2] for a quad domain
+												  // TODO: change/add other stuff
+};
+
 // Output control point
 struct HS_CONTROL_POINT_OUTPUT
 {
@@ -25,21 +33,14 @@ struct HS_CONTROL_POINT_OUTPUT
 	float4 color		: COLOR;
 };
 
-// Output patch constant data.
-struct HS_CONSTANT_DATA_OUTPUT
-{
-	float EdgeTessFactor[3]			: SV_TessFactor; // e.g. would be [4] for a quad domain
-	float InsideTessFactor			: SV_InsideTessFactor; // e.g. would be Inside[2] for a quad domain
-	// TODO: change/add other stuff
-};
+
 
 
 
 #define NUM_CONTROL_POINTS 3
 
 // Patch Constant Function
-HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
-	uint PatchID : SV_PrimitiveID)
+HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(InputPatch<VertexToHull, NUM_CONTROL_POINTS> ip, uint PatchID : SV_PrimitiveID)
 {
 	HS_CONSTANT_DATA_OUTPUT Output;
 
@@ -54,7 +55,7 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 }
 
 [domain("tri")]
-[partitioning("integer")]
+[partitioning("fractional_odd")]
 [outputtopology("triangle_cw")]
 [outputcontrolpoints(3)]
 [patchconstantfunc("CalcHSPatchConstants")]

@@ -8,7 +8,7 @@ using namespace DirectX;
 Game::Game(HINSTANCE hInstance)
 	: DXCore( 
 		hInstance,		   // The application's handle
-		"DirectX Game",	   // Text for the window's title bar
+		"Tessellation Demo",	   // Text for the window's title bar
 		1280,			   // Width of the window's client area
 		720,			   // Height of the window's client area
 		true)			   // Show extra stats (fps) in title bar?
@@ -29,15 +29,16 @@ Game::Game(HINSTANCE hInstance)
 
 Game::~Game()
 {
-	// Release any (and all!) DirectX objects
-	// we've made in the Game class
+	
 	if (vertexBuffer) { vertexBuffer->Release(); }
 	if (indexBuffer) { indexBuffer->Release(); }
 
-	// Delete our simple shader objects, which
-	// will clean up their own internal DirectX stuff
 	delete vertexShader;
 	delete pixelShader;
+	delete hullShader;
+	delete domainShader;
+
+	rsState->Release();
 }
 
 
@@ -46,6 +47,8 @@ void Game::Init()
 	LoadShaders();
 	CreateMatrices();
 	CreateBasicGeometry();
+
+	
 
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }
@@ -108,12 +111,26 @@ void Game::CreateBasicGeometry()
 
 	Vertex vertices[] = 
 	{
-		{ XMFLOAT3(+0.0f, +1.0f, +0.0f), red },
-		{ XMFLOAT3(+1.5f, -1.0f, +0.0f), blue },
+		{ XMFLOAT3(+0.0f, +1.0f, +0.0f), green },
+		{ XMFLOAT3(+1.5f, -1.0f, +0.0f), green },
 		{ XMFLOAT3(-1.5f, -1.0f, +0.0f), green },
 	};
 		
 	int indices[] = { 0, 1, 2 };
+
+	D3D11_RASTERIZER_DESC rasterDesc;
+	rasterDesc.AntialiasedLineEnable = false;
+	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+
+	device->CreateRasterizerState(&rasterDesc, &rsState);
 
 
 	D3D11_BUFFER_DESC vbd;
@@ -171,7 +188,7 @@ void Game::Update(float deltaTime, float totalTime)
 void Game::Draw(float deltaTime, float totalTime)
 {
 	// Background color (Cornflower Blue in this case) for clearing
-	const float color[4] = {0.4f, 0.6f, 0.75f, 0.0f};
+	const float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 	
 	context->ClearRenderTargetView(backBufferRTV, color);
@@ -181,13 +198,18 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 	vertexShader->CopyAllBufferData();
 	vertexShader->SetShader();
 
-	domainShader->SetFloat("tessellationAmount", 15.0f);
-	domainShader->SetShader();
-	domainShader->CopyAllBufferData();
+	hullShader->SetFloat("tessellationAmount", 5.0f);
+	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	hullShader->SetShader();
+	hullShader->CopyAllBufferData();
 
 	domainShader->SetMatrix4x4("world", worldMatrix);
 	domainShader->SetMatrix4x4("view", viewMatrix);
@@ -198,11 +220,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	pixelShader->SetShader();
 	pixelShader->CopyAllBufferData();
 
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
-	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
+	
+	//context->HSSetShader(0, 0, 0);
+	//context->DSSetShader(0, 0, 0);
 	
 
 	context->DrawIndexed(

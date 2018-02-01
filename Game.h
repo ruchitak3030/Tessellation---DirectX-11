@@ -41,6 +41,8 @@ private:
 	SimpleHullShader* hullShader;
 	SimpleDomainShader* domainShader;
 
+	ID3D11RasterizerState* rsState;
+
 	// The matrices to go from model space to screen space
 	DirectX::XMFLOAT4X4 worldMatrix;
 	DirectX::XMFLOAT4X4 viewMatrix;
