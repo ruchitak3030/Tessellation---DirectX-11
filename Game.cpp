@@ -48,9 +48,23 @@ void Game::Init()
 	CreateMatrices();
 	CreateBasicGeometry();
 
+
+	D3D11_RASTERIZER_DESC rasterDesc;
+	rasterDesc.AntialiasedLineEnable = false;
+	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+
+	device->CreateRasterizerState(&rasterDesc, &rsState);
 	
 
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 
@@ -118,19 +132,7 @@ void Game::CreateBasicGeometry()
 		
 	int indices[] = { 0, 1, 2 };
 
-	D3D11_RASTERIZER_DESC rasterDesc;
-	rasterDesc.AntialiasedLineEnable = false;
-	rasterDesc.CullMode = D3D11_CULL_BACK;
-	rasterDesc.DepthBias = 0;
-	rasterDesc.DepthBiasClamp = 0.0f;
-	rasterDesc.DepthClipEnable = true;
-	rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
-	rasterDesc.FrontCounterClockwise = false;
-	rasterDesc.MultisampleEnable = false;
-	rasterDesc.ScissorEnable = false;
-	rasterDesc.SlopeScaledDepthBias = 0.0f;
-
-	device->CreateRasterizerState(&rasterDesc, &rsState);
+	
 
 
 	D3D11_BUFFER_DESC vbd;
@@ -198,15 +200,19 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
+	context->RSSetState(rsState);
+
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
+
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 	vertexShader->CopyAllBufferData();
 	vertexShader->SetShader();
 
-	hullShader->SetFloat("tessellationAmount", 5.0f);
+	hullShader->SetFloat("tessellationAmount", 12.0f);
 	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
 	hullShader->SetShader();
 	hullShader->CopyAllBufferData();
