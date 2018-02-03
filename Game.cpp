@@ -14,8 +14,8 @@ Game::Game(HINSTANCE hInstance)
 		true)			   // Show extra stats (fps) in title bar?
 {
 	// Initialize fields
-	vertexBuffer = 0;
-	indexBuffer = 0;
+	// vertexBuffer = 0;
+	//indexBuffer = 0;
 	vertexShader = 0;
 	pixelShader = 0;
 
@@ -30,13 +30,16 @@ Game::Game(HINSTANCE hInstance)
 Game::~Game()
 {
 	
-	if (vertexBuffer) { vertexBuffer->Release(); }
-	if (indexBuffer) { indexBuffer->Release(); }
+	/*if (vertexBuffer) { vertexBuffer->Release(); }
+	if (indexBuffer) { indexBuffer->Release(); }*/
 
 	delete vertexShader;
 	delete pixelShader;
 	delete hullShader;
 	delete domainShader;
+
+	delete triangleMesh1;
+	delete triangleMesh2;
 
 	rsState->Release();
 }
@@ -64,7 +67,7 @@ void Game::Init()
 	device->CreateRasterizerState(&rasterDesc, &rsState);
 	
 
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 }
 
 
@@ -123,46 +126,29 @@ void Game::CreateBasicGeometry()
 	XMFLOAT4 green	= XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 	XMFLOAT4 blue	= XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
 
-	Vertex vertices[] = 
+	Vertex vertices1[] = 
 	{
-		{ XMFLOAT3(+0.0f, +1.0f, +0.0f), green },
-		{ XMFLOAT3(+1.5f, -1.0f, +0.0f), green },
-		{ XMFLOAT3(-1.5f, -1.0f, +0.0f), green },
+		{ XMFLOAT3(-2.0f, +1.0f, +0.0f), green },
+		{ XMFLOAT3( -1.0f, -1.0f, +0.0f), green },
+		{ XMFLOAT3(-3.0f, -1.0f, +0.0f), green },
 	};
 		
-	int indices[] = { 0, 1, 2 };
+	unsigned int indices1[] = { 0, 1, 2 };
+
+	Vertex vertices2[] =
+	{
+		{ XMFLOAT3(+2.0f, +1.0f, +0.0f), green },
+		{ XMFLOAT3(+3.0f, -1.0f, +0.0f), green },
+		{ XMFLOAT3(+1.0f, -1.0f, +0.0f), green },
+	};
+
+	unsigned int indices2[] = { 0, 1, 2 };
 
 	
+	triangleMesh1 = new Mesh(vertices1, 3, indices1, 3, device);
+	triangleMesh2 = new Mesh(vertices2, 3, indices2, 3, device);
 
-
-	D3D11_BUFFER_DESC vbd;
-	vbd.Usage				= D3D11_USAGE_IMMUTABLE;
-	vbd.ByteWidth			= sizeof(Vertex) * 3;       // 3 = number of vertices in the buffer
-	vbd.BindFlags			= D3D11_BIND_VERTEX_BUFFER; // Tells DirectX this is a vertex buffer
-	vbd.CPUAccessFlags		= 0;
-	vbd.MiscFlags			= 0;
-	vbd.StructureByteStride	= 0;
-
-	D3D11_SUBRESOURCE_DATA initialVertexData;
-	initialVertexData.pSysMem = vertices;
-
-	device->CreateBuffer(&vbd, &initialVertexData, &vertexBuffer);
-
-
-	D3D11_BUFFER_DESC ibd;
-	ibd.Usage               = D3D11_USAGE_IMMUTABLE;
-	ibd.ByteWidth           = sizeof(int) * 3;         // 3 = number of indices in the buffer
-	ibd.BindFlags           = D3D11_BIND_INDEX_BUFFER; // Tells DirectX this is an index buffer
-	ibd.CPUAccessFlags      = 0;
-	ibd.MiscFlags           = 0;
-	ibd.StructureByteStride = 0;
-
-	D3D11_SUBRESOURCE_DATA initialIndexData;
-	initialIndexData.pSysMem = indices;
-
-	// Actually create the buffer with the initial data
-	// - Once we do this, we'll NEVER CHANGE THE BUFFER AGAIN
-	device->CreateBuffer(&ibd, &initialIndexData, &indexBuffer);
+	
 }
 
 
@@ -205,7 +191,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+	ID3D11Buffer* vertexBuffer = triangleMesh1->GetVertexBuffer();
+	ID3D11Buffer* indexBuffer = triangleMesh1->GetIndexBuffer();
+
 	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
@@ -225,22 +213,39 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	pixelShader->SetShader();
 	pixelShader->CopyAllBufferData();
-
-	
-	//context->HSSetShader(0, 0, 0);
-	//context->DSSetShader(0, 0, 0);
 	
 
-	context->DrawIndexed(
-		3,     // The number of indices to use (we could draw a subset if we wanted)
-		0,     // Offset to the first index we want to use
-		0);    // Offset to add to each index when looking up vertices
+	context->DrawIndexed(triangleMesh1->GetIndexCount(), 0, 0);
+
+
+	vertexBuffer = triangleMesh2->GetVertexBuffer();
+	indexBuffer = triangleMesh2->GetIndexBuffer();
+
+	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	vertexShader->CopyAllBufferData();
+	vertexShader->SetShader();
+
+	hullShader->SetFloat("tessellationAmount", 5.0f);
+	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	hullShader->SetShader();
+	hullShader->CopyAllBufferData();
+
+	domainShader->SetMatrix4x4("world", worldMatrix);
+	domainShader->SetMatrix4x4("view", viewMatrix);
+	domainShader->SetMatrix4x4("projection", projectionMatrix);
+	domainShader->SetShader();
+	domainShader->CopyAllBufferData();
+
+	pixelShader->SetShader();
+	pixelShader->CopyAllBufferData();
+
+
+	context->DrawIndexed(triangleMesh2->GetIndexCount(), 0, 0);
 
 
 
-	// Present the back buffer to the user
-	//  - Puts the final frame we're drawing into the window so the user can see it
-	//  - Do this exactly ONCE PER FRAME (always at the very end of the frame)
 	swapChain->Present(0, 0);
 }
 
