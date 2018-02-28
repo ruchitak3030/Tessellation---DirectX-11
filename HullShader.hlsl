@@ -7,8 +7,11 @@ cbuffer TessellatorBuffer
 struct VertexToHull
 {
 
-	float3 position		: POSITION;		// XYZW position (System Value Position)
-	float4 color		: COLOR;        // RGBA color
+	float3 worldPos		: POSITION;		// XYZW position (System Value Position)
+										//float4 color		: COLOR;        // RGBA color
+	float3 normal		: NORMAL;
+	float3 tangent		: TANGENT;
+	float2 uv			: TEXCOORD;
 };
 
 // Input control point
@@ -29,8 +32,11 @@ struct HS_CONSTANT_DATA_OUTPUT
 // Output control point
 struct HS_CONTROL_POINT_OUTPUT
 {
-	float3 position	    : POSITION; 
-	float4 color		: COLOR;
+	float3 worldPos	    : POSITION; 
+	//float4 color		: COLOR;
+	float3 normal		: NORMAL;
+	float3 tangent		: TANGENT;
+	float2 uv			: TEXCOORD;
 };
 
 
@@ -68,9 +74,12 @@ HS_CONTROL_POINT_OUTPUT main(
 	HS_CONTROL_POINT_OUTPUT Output;
 
 	// Insert code to compute Output here
-	Output.position = ip[i].position;
+	Output.worldPos = ip[i].worldPos;
+	Output.normal = ip[i].normal;
+	Output.tangent = ip[i].tangent;
+	Output.uv = ip[i].uv;
 
-	Output.color = ip[i].color;
+	//Output.color = ip[i].color;
 
 	return Output;
 }

@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Vertex.h"
+#include "WICTextureLoader.h"
 
 // For the DirectX Math library
 using namespace DirectX;
@@ -38,8 +39,13 @@ Game::~Game()
 	delete hullShader;
 	delete domainShader;
 
-	delete triangleMesh1;
-	delete triangleMesh2;
+	delete sphereMesh1;
+	//sampler->Release();
+
+	//sphereTexture->Release();
+	//sphereNormalMap->Release();
+	delete sphereEntity1;
+	delete camera;
 
 	rsState->Release();
 }
@@ -50,14 +56,16 @@ void Game::Init()
 	LoadShaders();
 	CreateMatrices();
 	CreateBasicGeometry();
+	LoadTextures();
+	LoadMaterials();
 
 
 	D3D11_RASTERIZER_DESC rasterDesc;
 	rasterDesc.AntialiasedLineEnable = false;
-	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.CullMode = D3D11_CULL_NONE;
 	rasterDesc.DepthBias = 0;
 	rasterDesc.DepthBiasClamp = 0.0f;
-	rasterDesc.DepthClipEnable = true;
+	rasterDesc.DepthClipEnable = false;
 	rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
 	rasterDesc.FrontCounterClockwise = false;
 	rasterDesc.MultisampleEnable = false;
@@ -65,9 +73,11 @@ void Game::Init()
 	rasterDesc.SlopeScaledDepthBias = 0.0f;
 
 	device->CreateRasterizerState(&rasterDesc, &rsState);
-	
 
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
 }
 
 
@@ -80,6 +90,14 @@ void Game::LoadShaders()
 	pixelShader = new SimplePixelShader(device, context);
 	if(!pixelShader->LoadShaderFile(L"Debug/PixelShader.cso"))	
 		pixelShader->LoadShaderFile(L"PixelShader.cso");
+
+	tessVertexShader = new SimpleVertexShader(device, context);
+	if (!tessVertexShader->LoadShaderFile(L"Debug/TessVertexShader.cso"))
+		tessVertexShader->LoadShaderFile(L"TessVertexShader.cso");
+
+	tessPixelShader = new SimplePixelShader(device, context);
+	if (!tessPixelShader->LoadShaderFile(L"Debug/TessPixelShader.cso"))
+		tessPixelShader->LoadShaderFile(L"TessPixelShader.cso");
 
 	hullShader = new SimpleHullShader(device, context);
 	if (!hullShader->LoadShaderFile(L"Debug/HullShader.cso"))
@@ -96,33 +114,15 @@ void Game::LoadShaders()
 
 void Game::CreateMatrices()
 {
-	
-	XMMATRIX W = XMMatrixIdentity();
-	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(W)); // Transpose for HLSL!
-
-	XMVECTOR pos = XMVectorSet(0, 0, -5, 0);
-	XMVECTOR dir = XMVectorSet(0, 0, 1, 0);
-	XMVECTOR up  = XMVectorSet(0, 1, 0, 0);
-	XMMATRIX V   = XMMatrixLookToLH(
-		pos,     // The position of the "camera"
-		dir,     // Direction the camera is looking
-		up);     // "Up" direction in 3D space (prevents roll)
-	XMStoreFloat4x4(&viewMatrix, XMMatrixTranspose(V)); // Transpose for HLSL!
-
-	
-	XMMATRIX P = XMMatrixPerspectiveFovLH(
-		0.25f * 3.1415926535f,		// Field of View Angle
-		(float)width / height,		// Aspect ratio
-		0.1f,						// Near clip plane distance
-		100.0f);					// Far clip plane distance
-	XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
+	camera = new Camera(0, 0, -10);
+	camera->UpdateProjectionMatrix((float)width / height);
 }
 
 
 void Game::CreateBasicGeometry()
 {
 	
-	XMFLOAT4 red	= XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+	/*XMFLOAT4 red	= XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 	XMFLOAT4 green	= XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 	XMFLOAT4 blue	= XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
 
@@ -146,8 +146,36 @@ void Game::CreateBasicGeometry()
 
 	
 	triangleMesh1 = new Mesh(vertices1, 3, indices1, 3, device);
-	triangleMesh2 = new Mesh(vertices2, 3, indices2, 3, device);
+	triangleMesh2 = new Mesh(vertices2, 3, indices2, 3, device);*/
 
+	sphereMesh1 = new Mesh("Models/sphere.obj", device);
+	sphereEntity1 = new GameEntity(sphereMesh1, sphereMaterial);
+	sphereEntity1->SetPosition(0.0f, 0.0f, 0.0f);
+	sphereEntity1->SetRotation(0.0f, 0.0f, 0.0f);
+	sphereEntity1->SetScale(0.5f, 0.5f, 0.5f);
+
+	
+}
+
+void Game::LoadTextures()
+{
+	CreateWICTextureFromFile(device, context, L"Textures/sphere.tif", 0, &sphereTextureSRV);
+	CreateWICTextureFromFile(device, context, L"Textures/sphereNormal.tif", 0, &sphereNormalMapSRV);
+}
+
+void Game::LoadMaterials()
+{
+	D3D11_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samplerDesc.MaxAnisotropy = 16;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	device->CreateSamplerState(&samplerDesc, &sampler);
+
+	sphereMaterial = new Material(pixelShader, vertexShader, sphereTextureSRV, sphereNormalMapSRV, sampler);
 	
 }
 
@@ -157,17 +185,24 @@ void Game::OnResize()
 	// Handle base-level DX resize stuff
 	DXCore::OnResize();
 
-	// Update our projection matrix since the window size changed
-	XMMATRIX P = XMMatrixPerspectiveFovLH(
-		0.25f * 3.1415926535f,	// Field of View Angle
-		(float)width / height,	// Aspect ratio
-		0.1f,				  	// Near clip plane distance
-		100.0f);			  	// Far clip plane distance
-	XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
+	if (camera)
+		camera->UpdateProjectionMatrix((float)width / height);
+
+	//// Update our projection matrix since the window size changed
+	//XMMATRIX P = XMMatrixPerspectiveFovLH(
+	//	0.25f * 3.1415926535f,	// Field of View Angle
+	//	(float)width / height,	// Aspect ratio
+	//	0.1f,				  	// Near clip plane distance
+	//	100.0f);			  	// Far clip plane distance
+	//XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
 }
 
 void Game::Update(float deltaTime, float totalTime)
 {
+	camera->Update(deltaTime);
+
+	sphereEntity1->UpdateWorldMatrix();
+
 	// Quit if the escape key is pressed
 	if (GetAsyncKeyState(VK_ESCAPE))
 		Quit();
@@ -191,31 +226,43 @@ void Game::Draw(float deltaTime, float totalTime)
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
-	ID3D11Buffer* vertexBuffer = triangleMesh1->GetVertexBuffer();
-	ID3D11Buffer* indexBuffer = triangleMesh1->GetIndexBuffer();
+	ID3D11Buffer* vertexBuffer = sphereEntity1->GetMesh()->GetVertexBuffer();
+	ID3D11Buffer* indexBuffer = sphereEntity1->GetMesh()->GetIndexBuffer();
 
 	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-	vertexShader->CopyAllBufferData();
 	vertexShader->SetShader();
+	vertexShader->CopyAllBufferData();
+	pixelShader->SetShader();
+	pixelShader->CopyAllBufferData();
+
+	tessVertexShader->SetMatrix4x4("world", *sphereEntity1->GetWorldMatrix());	
+	tessVertexShader->SetShader();
+	tessVertexShader->CopyAllBufferData();
 
 	hullShader->SetFloat("tessellationAmount", 12.0f);
 	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
 	hullShader->SetShader();
 	hullShader->CopyAllBufferData();
 
-	domainShader->SetMatrix4x4("world", worldMatrix);
-	domainShader->SetMatrix4x4("view", viewMatrix);
-	domainShader->SetMatrix4x4("projection", projectionMatrix);
+	
+	domainShader->SetMatrix4x4("view", camera->GetView());
+	domainShader->SetMatrix4x4("projection", camera->GetProjection());
 	domainShader->SetShader();
 	domainShader->CopyAllBufferData();
 
-	pixelShader->SetShader();
-	pixelShader->CopyAllBufferData();
+	tessPixelShader->SetShaderResourceView("textureSRV", 0);
+	tessPixelShader->SetShaderResourceView("normalMapSRV", 0);
+	tessPixelShader->SetSamplerState("basicSampler", 0);
+	tessPixelShader->SetShader();
+	tessPixelShader->CopyAllBufferData();
+
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	context->DrawIndexed(sphereEntity1->GetMesh()->GetIndexCount(), 0, 0);
 	
 
-	context->DrawIndexed(triangleMesh1->GetIndexCount(), 0, 0);
+	/*context->DrawIndexed(triangleMesh1->GetIndexCount(), 0, 0);
 
 
 	vertexBuffer = triangleMesh2->GetVertexBuffer();
@@ -242,7 +289,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	pixelShader->CopyAllBufferData();
 
 
-	context->DrawIndexed(triangleMesh2->GetIndexCount(), 0, 0);
+	context->DrawIndexed(triangleMesh2->GetIndexCount(), 0, 0);*/
 
 
 

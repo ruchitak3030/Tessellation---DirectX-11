@@ -1,36 +1,45 @@
-//cbuffer externalData	: register(b0)
-//{
-//	matrix world;
-//}
+cbuffer externalData : register(b0)
+{
+	matrix world;
+	matrix view;
+	matrix projection;
+};
 
 struct VertexShaderInput
-{ 
-	
-	float3 position		: POSITION;     // XYZ position
-	float4 color		: COLOR;        // RGBA color
+{
+	float3 position		: POSITION;
+	float2 uv			: TEXCOORD;
+	float3 normal		: NORMAL;
+	float3 tangent		: TANGENT;
 };
 
-
-struct VertexToHull
+struct VertexToPixel
 {
-
-	float3 position		: POSITION;		// XYZW position (System Value Position)
-	float4 color		: COLOR;        // RGBA color
+	float4 position		: SV_POSITION;
+	float3 normal		: NORMAL;
+	float3 tangent		: TANGENT;
+	float3 worldPos		: POSITION;
+	float2 uv			: TEXCOORD;
 };
 
-VertexToHull main(VertexShaderInput input)
+VertexToPixel main( VertexShaderInput input )
 {
+	// Set up output
+	VertexToPixel output;
 
-	VertexToHull output;
+	// Calculate output position
+	matrix worldViewProj = mul(mul(world, view), projection);
+	output.position = mul(float4(input.position, 1.0f), worldViewProj);
 
-	//matrix worldViewProj = mul(mul(world, view), projection);
-	
-	//output.position = mul(float4(input.position, 1.0f), worldViewProj);
-	//output.position = mul(float4(input.position, 1.0f), world).xyz;
+	// Get the normal to the pixel shader
+	output.normal = mul(input.normal, (float3x3)world); // ASSUMING UNIFORM SCALE HERE!!!  If not, use inverse transpose of world matrix
+	output.tangent = mul(input.tangent, (float3x3)world);
 
-	output.position = input.position;
+	// Get world position of vertex
+	output.worldPos = mul(float4(input.position, 1.0f), world).xyz;
 
-	output.color = input.color;
+	// Pass through the uv
+	output.uv = input.uv;
 
 	return output;
 }

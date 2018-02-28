@@ -3,7 +3,10 @@
 #include "DXCore.h"
 #include "SimpleShader.h"
 #include <DirectXMath.h>
+#include "Camera.h"
 #include "Mesh.h"
+#include "GameEntity.h"
+#include "Material.h"
 
 class Game 
 	: public DXCore
@@ -31,9 +34,18 @@ private:
 	void LoadShaders(); 
 	void CreateMatrices();
 	void CreateBasicGeometry();
+	void LoadTextures();
+	void LoadMaterials();
 
-	Mesh* triangleMesh1;
-	Mesh* triangleMesh2;
+	Mesh* sphereMesh1;
+	GameEntity* sphereEntity1;
+
+	ID3D11SamplerState* sampler;
+	ID3D11ShaderResourceView* sphereTextureSRV;
+	ID3D11ShaderResourceView* sphereNormalMapSRV;
+
+	Camera* camera;
+	Material* sphereMaterial;
 
 	// Buffers to hold actual geometry data
 	//ID3D11Buffer* vertexBuffer;
@@ -42,6 +54,8 @@ private:
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
 	SimplePixelShader* pixelShader;
+	SimpleVertexShader* tessVertexShader;
+	SimplePixelShader* tessPixelShader;
 	SimpleHullShader* hullShader;
 	SimpleDomainShader* domainShader;
 
