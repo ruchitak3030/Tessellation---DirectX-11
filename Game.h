@@ -39,13 +39,14 @@ private:
 
 	Mesh* sphereMesh1;
 	GameEntity* sphereEntity1;
+	Camera* camera;
+	Material* sphereMaterial;
 
 	ID3D11SamplerState* sampler;
 	ID3D11ShaderResourceView* sphereTextureSRV;
 	ID3D11ShaderResourceView* sphereNormalMapSRV;
 
-	Camera* camera;
-	Material* sphereMaterial;
+	
 
 	// Buffers to hold actual geometry data
 	//ID3D11Buffer* vertexBuffer;

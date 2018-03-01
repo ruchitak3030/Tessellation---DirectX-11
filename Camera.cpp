@@ -1,7 +1,9 @@
 #include "Camera.h"
+#include <Windows.h>
 
+using namespace DirectX;
 
-
+// Creates a camera at the specified position
 Camera::Camera(float x, float y, float z)
 {
 	position = XMFLOAT3(x, y, z);
@@ -14,33 +16,31 @@ Camera::Camera(float x, float y, float z)
 	XMStoreFloat4x4(&projMatrix, XMMatrixIdentity());
 }
 
-
+// Nothing to really do
 Camera::~Camera()
-{
-}
+{ }
 
+
+// Moves the camera relative to its orientation
 void Camera::MoveRelative(float x, float y, float z)
 {
-	position = XMFLOAT3(x, y, z);
-	startPosition = XMFLOAT3(x, y, z);
-	XMStoreFloat4(&rotation, XMQuaternionIdentity());
-	xRotation = 0;
-	yRotation = 0;
+	// Rotate the desired movement vector
+	XMVECTOR dir = XMVector3Rotate(XMVectorSet(x, y, z, 0), XMLoadFloat4(&rotation));
 
-	XMStoreFloat4x4(&viewMatrix, XMMatrixIdentity());
-	XMStoreFloat4x4(&projMatrix, XMMatrixIdentity());
+	// Move in that direction
+	XMStoreFloat3(&position, XMLoadFloat3(&position) + dir);
 }
 
+// Moves the camera in world space (not local space)
 void Camera::MoveAbsolute(float x, float y, float z)
 {
-
 	// Simple add, no need to load/store
 	position.x += x;
 	position.y += y;
 	position.z += z;
-	
 }
 
+// Rotate on the X and/or Y axis
 void Camera::Rotate(float x, float y)
 {
 	// Adjust the current rotation
@@ -54,6 +54,7 @@ void Camera::Rotate(float x, float y)
 	XMStoreFloat4(&rotation, XMQuaternionRotationRollPitchYaw(xRotation, yRotation, 0));
 }
 
+// Camera's update, which looks for key presses
 void Camera::Update(float dt)
 {
 	// Current speed
@@ -84,6 +85,7 @@ void Camera::Update(float dt)
 	UpdateViewMatrix();
 }
 
+// Creates a new view matrix based on current position and orientation
 void Camera::UpdateViewMatrix()
 {
 	// Rotate the standard "forward" matrix by our rotation
@@ -98,6 +100,7 @@ void Camera::UpdateViewMatrix()
 	XMStoreFloat4x4(&viewMatrix, XMMatrixTranspose(view));
 }
 
+// Updates the projection matrix
 void Camera::UpdateProjectionMatrix(float aspectRatio)
 {
 	XMMATRIX P = XMMatrixPerspectiveFovLH(

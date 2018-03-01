@@ -30,22 +30,26 @@ Game::Game(HINSTANCE hInstance)
 
 Game::~Game()
 {
-	
-	/*if (vertexBuffer) { vertexBuffer->Release(); }
-	if (indexBuffer) { indexBuffer->Release(); }*/
 
 	delete vertexShader;
 	delete pixelShader;
+	delete tessVertexShader;
+	delete tessPixelShader;
 	delete hullShader;
 	delete domainShader;
 
 	delete sphereMesh1;
-	//sampler->Release();
-
-	//sphereTexture->Release();
-	//sphereNormalMap->Release();
 	delete sphereEntity1;
 	delete camera;
+	delete sphereMaterial;
+
+	
+
+	sampler->Release();
+	sphereTextureSRV->Release();
+	sphereNormalMapSRV->Release();
+
+	
 
 	rsState->Release();
 }
@@ -121,32 +125,6 @@ void Game::CreateMatrices()
 
 void Game::CreateBasicGeometry()
 {
-	
-	/*XMFLOAT4 red	= XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4 green	= XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
-	XMFLOAT4 blue	= XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
-
-	Vertex vertices1[] = 
-	{
-		{ XMFLOAT3(-2.0f, +1.0f, +0.0f), green },
-		{ XMFLOAT3( -1.0f, -1.0f, +0.0f), green },
-		{ XMFLOAT3(-3.0f, -1.0f, +0.0f), green },
-	};
-		
-	unsigned int indices1[] = { 0, 1, 2 };
-
-	Vertex vertices2[] =
-	{
-		{ XMFLOAT3(+2.0f, +1.0f, +0.0f), green },
-		{ XMFLOAT3(+3.0f, -1.0f, +0.0f), green },
-		{ XMFLOAT3(+1.0f, -1.0f, +0.0f), green },
-	};
-
-	unsigned int indices2[] = { 0, 1, 2 };
-
-	
-	triangleMesh1 = new Mesh(vertices1, 3, indices1, 3, device);
-	triangleMesh2 = new Mesh(vertices2, 3, indices2, 3, device);*/
 
 	sphereMesh1 = new Mesh("Models/sphere.obj", device);
 	sphereEntity1 = new GameEntity(sphereMesh1, sphereMaterial);
@@ -159,8 +137,8 @@ void Game::CreateBasicGeometry()
 
 void Game::LoadTextures()
 {
-	CreateWICTextureFromFile(device, context, L"Textures/sphere.tif", 0, &sphereTextureSRV);
-	CreateWICTextureFromFile(device, context, L"Textures/sphereNormal.tif", 0, &sphereNormalMapSRV);
+	HRESULT r = CreateWICTextureFromFile(device, context, L"Textures/sphereRoughAlbedo.tif", 0, &sphereTextureSRV);
+	HRESULT l = CreateWICTextureFromFile(device, context, L"Textures/sphereRoughNormal.tif", 0, &sphereNormalMapSRV);
 }
 
 void Game::LoadMaterials()
@@ -187,14 +165,6 @@ void Game::OnResize()
 
 	if (camera)
 		camera->UpdateProjectionMatrix((float)width / height);
-
-	//// Update our projection matrix since the window size changed
-	//XMMATRIX P = XMMatrixPerspectiveFovLH(
-	//	0.25f * 3.1415926535f,	// Field of View Angle
-	//	(float)width / height,	// Aspect ratio
-	//	0.1f,				  	// Near clip plane distance
-	//	100.0f);			  	// Far clip plane distance
-	//XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
 }
 
 void Game::Update(float deltaTime, float totalTime)
@@ -231,6 +201,7 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
 	vertexShader->SetShader();
 	vertexShader->CopyAllBufferData();
 	pixelShader->SetShader();
@@ -240,7 +211,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	tessVertexShader->SetShader();
 	tessVertexShader->CopyAllBufferData();
 
-	hullShader->SetFloat("tessellationAmount", 12.0f);
+	hullShader->SetFloat("tessellationAmount", 20.0f);
 	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
 	hullShader->SetShader();
 	hullShader->CopyAllBufferData();
@@ -251,9 +222,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	domainShader->SetShader();
 	domainShader->CopyAllBufferData();
 
-	tessPixelShader->SetShaderResourceView("textureSRV", 0);
-	tessPixelShader->SetShaderResourceView("normalMapSRV", 0);
-	tessPixelShader->SetSamplerState("basicSampler", 0);
+	tessPixelShader->SetShaderResourceView("textureSRV", sphereTextureSRV );
+	tessPixelShader->SetShaderResourceView("normalMapSRV", sphereNormalMapSRV );
+	tessPixelShader->SetSamplerState("basicSampler", sampler );
 	tessPixelShader->SetShader();
 	tessPixelShader->CopyAllBufferData();
 

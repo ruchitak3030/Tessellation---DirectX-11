@@ -1,12 +1,11 @@
 
-Texture2D textureSRV		: register(t0);
-Texture2D normalMapSRV		: register(t1);
-SamplerState basicSampler   : register(s0);
+Texture2D textureSRV : register(t0);
+Texture2D normalMapSRV : register(t1);
+SamplerState basicSampler : register(s0);
 
 struct DomainToPixel
 {
-	float4 position		: SV_POSITION;
-	//float4 color		: COLOR;
+	float4 vPosition	: SV_POSITION;
 	float3 normal		: NORMAL;
 	float3 tangent		: TANGENT;
 	float3 worldPos		: POSITION;
@@ -30,5 +29,5 @@ float4 main(DomainToPixel input) : SV_TARGET
 
 	float4 surfaceColor = textureSRV.Sample(basicSampler, input.uv);
 
-	return float4(1.0f,0.0f,1.0f,1.0f);
+	return surfaceColor;
 }

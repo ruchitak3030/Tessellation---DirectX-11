@@ -182,11 +182,11 @@ Mesh::Mesh(const char * objFile, ID3D11Device * device)
 
 Mesh::~Mesh()
 {
-	//vertexBuffer->Release();
-	//vertexBuffer = 0;
+	vertexBuffer->Release();
+	vertexBuffer = 0;
 
-	//indexBuffer->Release();
-	//indexBuffer = 0;
+	indexBuffer->Release();
+	indexBuffer = 0;
 }
 
 ID3D11Buffer * Mesh::GetVertexBuffer()
