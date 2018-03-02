@@ -1,7 +1,6 @@
 #pragma once
 #include "DXCore.h"
 #include "Mesh.h"
-#include "Material.h"
 #include <DirectXMath.h>
 
 using namespace DirectX;
@@ -9,7 +8,7 @@ using namespace DirectX;
 class GameEntity
 {
 public:
-	GameEntity(Mesh* mesh, Material* material);
+	GameEntity(Mesh* mesh);
 	~GameEntity();
 
 	void UpdateWorldMatrix();
@@ -24,12 +23,12 @@ public:
 	XMFLOAT3 GetPosition();
 
 	Mesh* GetMesh() { return _mesh; }
-	Material* GetMaterial() { return _material; }
+	//Material* GetMaterial() { return _material; }
 	XMFLOAT4X4* GetWorldMatrix() { return &worldMatrix; }
 
 private:
 	Mesh* _mesh;
-	Material* _material;
+	//Material* _material;
 
 	XMFLOAT4X4 worldMatrix;
 	XMFLOAT3 position;

@@ -6,7 +6,7 @@
 #include "Camera.h"
 #include "Mesh.h"
 #include "GameEntity.h"
-#include "Material.h"
+
 
 class Game 
 	: public DXCore
@@ -36,18 +36,20 @@ private:
 	void CreateBasicGeometry();
 	void LoadTextures();
 	void LoadMaterials();
+	void LoadSkyBox();
 
 	Mesh* sphereMesh1;
+	Mesh* skyMesh;
 	GameEntity* sphereEntity1;
+	GameEntity* skyEntity;
 	Camera* camera;
-	Material* sphereMaterial;
 
 	ID3D11SamplerState* sampler;
 	ID3D11SamplerState* heightSampler;
 	ID3D11ShaderResourceView* sphereTextureSRV;
 	ID3D11ShaderResourceView* sphereNormalMapSRV;
-	ID3D11ShaderResourceView* sphereRoughMapSRV;
-
+	ID3D11ShaderResourceView* sphereHeightMapSRV;
+	ID3D11ShaderResourceView* skyTextureSRV;
 	
 
 	// Buffers to hold actual geometry data
@@ -57,12 +59,16 @@ private:
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
 	SimplePixelShader* pixelShader;
+	SimpleVertexShader* skyVertexShader;
+	SimplePixelShader* skyPixelShader;
 	SimpleVertexShader* tessVertexShader;
 	SimplePixelShader* tessPixelShader;
 	SimpleHullShader* hullShader;
 	SimpleDomainShader* domainShader;
 
 	ID3D11RasterizerState* rsState;
+	ID3D11RasterizerState* skyRasterizerState;
+	ID3D11DepthStencilState* skyDepthState;
 
 	// The matrices to go from model space to screen space
 	DirectX::XMFLOAT4X4 worldMatrix;

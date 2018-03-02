@@ -1,4 +1,7 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(387,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (DX11Starter.vcxproj).  This can lead to incorrect clean and rebuild behavior.
-  compilation object save succeeded; see C:\Users\ruchi\Desktop\Graphics\Tessellation---DirectX-11\Debug\DomainShader.cso
+  Game.cpp
+  Generating Code...
+  Skipping... (no relevant changes detected)
+  Main.cpp
   DX11Starter.vcxproj -> C:\Users\ruchi\Desktop\Graphics\Tessellation---DirectX-11\Debug\Tessellation.exe
   DX11Starter.vcxproj -> C:\Users\ruchi\Desktop\Graphics\Tessellation---DirectX-11\Debug\Tessellation.pdb (Partial PDB)

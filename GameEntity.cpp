@@ -2,10 +2,10 @@
 
 
 
-GameEntity::GameEntity(Mesh * mesh, Material* material)
+GameEntity::GameEntity(Mesh * mesh)
 {
 	_mesh = mesh;
-	_material = material;
+	//_material = material;
 
 	XMStoreFloat4x4(&worldMatrix, XMMatrixIdentity());
 	position = XMFLOAT3(0, 0, 0);

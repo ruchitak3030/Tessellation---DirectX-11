@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "Vertex.h"
 #include "WICTextureLoader.h"
+#include "DDSTextureLoader.h"
 
 // For the DirectX Math library
 using namespace DirectX;
@@ -33,26 +34,31 @@ Game::~Game()
 
 	delete vertexShader;
 	delete pixelShader;
+	delete skyVertexShader;
+	delete skyPixelShader;
 	delete tessVertexShader;
 	delete tessPixelShader;
 	delete hullShader;
 	delete domainShader;
 
 	delete sphereMesh1;
+	delete skyMesh;
 	delete sphereEntity1;
+	delete skyEntity;
 	delete camera;
-	delete sphereMaterial;
-
 	
 
 	sampler->Release();
 	heightSampler->Release();
 	sphereTextureSRV->Release();
 	sphereNormalMapSRV->Release();
-	sphereRoughMapSRV->Release();
+	sphereHeightMapSRV->Release();
+	skyTextureSRV->Release();
 	
 
 	rsState->Release();
+	skyRasterizerState->Release();
+	skyDepthState->Release();
 }
 
 
@@ -63,6 +69,7 @@ void Game::Init()
 	CreateBasicGeometry();
 	LoadTextures();
 	LoadMaterials();
+	LoadSkyBox();
 
 
 	D3D11_RASTERIZER_DESC rasterDesc;
@@ -79,7 +86,7 @@ void Game::Init()
 
 	device->CreateRasterizerState(&rasterDesc, &rsState);
 
-
+	
 
 
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -97,6 +104,14 @@ void Game::LoadShaders()
 	pixelShader = new SimplePixelShader(device, context);
 	if(!pixelShader->LoadShaderFile(L"Debug/PixelShader.cso"))	
 		pixelShader->LoadShaderFile(L"PixelShader.cso");
+
+	skyVertexShader = new SimpleVertexShader(device, context);
+	if (!skyVertexShader->LoadShaderFile(L"Debug/SkyBoxVertexShader.cso"))
+		skyVertexShader->LoadShaderFile(L"SkyBoxVertexShader.cso");
+
+	skyPixelShader = new SimplePixelShader(device, context);
+	if (!skyPixelShader->LoadShaderFile(L"Debug/SkyBoxPixelShader.cso"))
+		skyPixelShader->LoadShaderFile(L"SkyBoxPixelShader.cso");
 
 	tessVertexShader = new SimpleVertexShader(device, context);
 	if (!tessVertexShader->LoadShaderFile(L"Debug/TessVertexShader.cso"))
@@ -121,7 +136,7 @@ void Game::LoadShaders()
 
 void Game::CreateMatrices()
 {
-	camera = new Camera(0, 0, -10);
+	camera = new Camera(0, 0, -1);
 	camera->UpdateProjectionMatrix((float)width / height);
 }
 
@@ -130,19 +145,27 @@ void Game::CreateBasicGeometry()
 {
 
 	sphereMesh1 = new Mesh("Models/sphere.obj", device);
-	sphereEntity1 = new GameEntity(sphereMesh1, sphereMaterial);
+	sphereEntity1 = new GameEntity(sphereMesh1);
 	sphereEntity1->SetPosition(0.0f, 0.0f, 0.0f);
 	sphereEntity1->SetRotation(0.0f, 0.0f, 0.0f);
 	sphereEntity1->SetScale(0.5f, 0.5f, 0.5f);
+
+	skyMesh = new Mesh("Models/cube.obj", device);
+	skyEntity = new GameEntity(skyMesh);
+	skyEntity->SetPosition(0.0f, 0.0f, 0.0f);
+	skyEntity->SetRotation(0.0f, 0.0f, 0.0f);
+	skyEntity->SetScale(1.0f, 1.0f, 1.0f);
 
 	
 }
 
 void Game::LoadTextures()
 {
-	HRESULT r = CreateWICTextureFromFile(device, context, L"Textures/sphereRoughAlbedo.tif", 0, &sphereTextureSRV);
-	HRESULT l = CreateWICTextureFromFile(device, context, L"Textures/sphereRoughNormal.tif", 0, &sphereNormalMapSRV);
-	HRESULT s = CreateWICTextureFromFile(device, context, L"Textures/sphereHeightMap.tif", 0, &sphereRoughMapSRV);
+	HRESULT r = CreateWICTextureFromFile(device, context, L"Textures/sphereAlbedo.tif", 0, &sphereTextureSRV);
+	HRESULT l = CreateWICTextureFromFile(device, context, L"Textures/sphereNormalMap.tif", 0, &sphereNormalMapSRV);
+	HRESULT s = CreateWICTextureFromFile(device, context, L"Textures/sphereHeightMap.tif", 0, &sphereHeightMapSRV);
+
+	
 }
 
 void Game::LoadMaterials()
@@ -174,8 +197,26 @@ void Game::LoadMaterials()
 
 	device->CreateSamplerState(&heightSamplerDesc, &heightSampler);
 
-	sphereMaterial = new Material(pixelShader, vertexShader, sphereTextureSRV, sphereNormalMapSRV, sampler);
+	// = new Material(pixelShader, vertexShader, sphereTextureSRV, sphereNormalMapSRV, sampler);
 	
+}
+
+void Game::LoadSkyBox()
+{
+	HRESULT m = CreateDDSTextureFromFile(device, L"Textures/Stormy.dds", 0, &skyTextureSRV);
+
+	//Sky Box Setup
+	D3D11_RASTERIZER_DESC rasterizerDesc = {};
+	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	rasterizerDesc.CullMode = D3D11_CULL_FRONT;
+	rasterizerDesc.DepthClipEnable = true;
+	device->CreateRasterizerState(&rasterizerDesc, &skyRasterizerState);
+
+	D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
+	depthStencilDesc.DepthEnable = true;
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	device->CreateDepthStencilState(&depthStencilDesc, &skyDepthState);
 }
 
 
@@ -217,6 +258,10 @@ void Game::Draw(float deltaTime, float totalTime)
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
+	/**********************************************************************************/
+	/*DRAW SPHERE*/
+	/**********************************************************************************/
+
 	ID3D11Buffer* vertexBuffer = sphereEntity1->GetMesh()->GetVertexBuffer();
 	ID3D11Buffer* indexBuffer = sphereEntity1->GetMesh()->GetIndexBuffer();
 
@@ -240,7 +285,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	
 	domainShader->SetMatrix4x4("view", camera->GetView());
 	domainShader->SetMatrix4x4("projection", camera->GetProjection());
-	domainShader->SetShaderResourceView("heightSRV", sphereRoughMapSRV);
+	domainShader->SetShaderResourceView("heightSRV", sphereHeightMapSRV);
 	domainShader->SetSamplerState("heightSampler", heightSampler);
 	domainShader->SetShader();
 	domainShader->CopyAllBufferData();
@@ -254,7 +299,39 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
 	context->DrawIndexed(sphereEntity1->GetMesh()->GetIndexCount(), 0, 0);
-	
+
+	/********************************************************************************************/
+	/*DRAW SKYBOX*/
+	/*******************************************************************************************/
+
+	context->HSSetShader(0, 0,0);
+	context->DSSetShader(0, 0, 0);
+
+	vertexBuffer = skyEntity->GetMesh()->GetVertexBuffer();
+	indexBuffer = skyEntity->GetMesh()->GetIndexBuffer();
+
+	skyVertexShader->SetMatrix4x4("view", camera->GetView());
+	skyVertexShader->SetMatrix4x4("projection", camera->GetProjection());
+
+	skyVertexShader->SetShader();
+	skyVertexShader->CopyAllBufferData();
+
+	skyPixelShader->SetShaderResourceView("Sky", skyTextureSRV);
+
+	skyPixelShader->SetShader();
+	skyPixelShader->CopyAllBufferData();
+
+	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	context->RSSetState(skyRasterizerState);
+	context->OMSetDepthStencilState(skyDepthState, 0);
+
+	context->DrawIndexed(skyMesh->GetIndexCount(), 0, 0);
+
+	context->RSSetState(0);
+	context->OMSetDepthStencilState(0, 0);
 
 	/*context->DrawIndexed(triangleMesh1->GetIndexCount(), 0, 0);
 
