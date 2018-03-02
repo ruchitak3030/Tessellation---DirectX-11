@@ -3,6 +3,7 @@ Texture2D textureSRV : register(t0);
 Texture2D normalMapSRV : register(t1);
 SamplerState basicSampler : register(s0);
 
+
 struct DomainToPixel
 {
 	float4 vPosition	: SV_POSITION;

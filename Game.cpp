@@ -44,6 +44,11 @@ Game::~Game()
 	delete sphereMesh1;
 	delete skyMesh;
 	delete sphereEntity1;
+	delete sphereEntity2;
+	delete sphereEntity3;
+	delete sphereEntity4;
+	delete sphereEntity5;
+	delete sphereEntity6;
 	delete skyEntity;
 	delete camera;
 	
@@ -56,7 +61,8 @@ Game::~Game()
 	skyTextureSRV->Release();
 	
 
-	rsState->Release();
+	rsStateSolid->Release();
+	rsStateWire->Release();
 	skyRasterizerState->Release();
 	skyDepthState->Release();
 }
@@ -72,19 +78,33 @@ void Game::Init()
 	LoadSkyBox();
 
 
-	D3D11_RASTERIZER_DESC rasterDesc;
-	rasterDesc.AntialiasedLineEnable = false;
-	rasterDesc.CullMode = D3D11_CULL_NONE;
-	rasterDesc.DepthBias = 0;
-	rasterDesc.DepthBiasClamp = 0.0f;
-	rasterDesc.DepthClipEnable = false;
-	rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
-	rasterDesc.FrontCounterClockwise = false;
-	rasterDesc.MultisampleEnable = false;
-	rasterDesc.ScissorEnable = false;
-	rasterDesc.SlopeScaledDepthBias = 0.0f;
+	D3D11_RASTERIZER_DESC rasterDescSolid;
+	rasterDescSolid.AntialiasedLineEnable = false;
+	rasterDescSolid.CullMode = D3D11_CULL_NONE;
+	rasterDescSolid.DepthBias = 0;
+	rasterDescSolid.DepthBiasClamp = 0.0f;
+	rasterDescSolid.DepthClipEnable = false;
+	rasterDescSolid.FillMode = D3D11_FILL_SOLID;
+	rasterDescSolid.FrontCounterClockwise = false;
+	rasterDescSolid.MultisampleEnable = false;
+	rasterDescSolid.ScissorEnable = false;
+	rasterDescSolid.SlopeScaledDepthBias = 0.0f;
 
-	device->CreateRasterizerState(&rasterDesc, &rsState);
+	device->CreateRasterizerState(&rasterDescSolid, &rsStateSolid);
+
+	D3D11_RASTERIZER_DESC rasterDescWireframe;
+	rasterDescWireframe.AntialiasedLineEnable = false;
+	rasterDescWireframe.CullMode = D3D11_CULL_NONE;
+	rasterDescWireframe.DepthBias = 0;
+	rasterDescWireframe.DepthBiasClamp = 0.0f;
+	rasterDescWireframe.DepthClipEnable = false;
+	rasterDescWireframe.FillMode = D3D11_FILL_WIREFRAME;
+	rasterDescWireframe.FrontCounterClockwise = false;
+	rasterDescWireframe.MultisampleEnable = false;
+	rasterDescWireframe.ScissorEnable = false;
+	rasterDescWireframe.SlopeScaledDepthBias = 0.0f;
+
+	device->CreateRasterizerState(&rasterDescWireframe, &rsStateWire);
 
 	
 
@@ -136,7 +156,7 @@ void Game::LoadShaders()
 
 void Game::CreateMatrices()
 {
-	camera = new Camera(0, 0, -1);
+	camera = new Camera(0, 0, -5);
 	camera->UpdateProjectionMatrix((float)width / height);
 }
 
@@ -146,9 +166,34 @@ void Game::CreateBasicGeometry()
 
 	sphereMesh1 = new Mesh("Models/sphere.obj", device);
 	sphereEntity1 = new GameEntity(sphereMesh1);
-	sphereEntity1->SetPosition(0.0f, 0.0f, 0.0f);
+	sphereEntity1->SetPosition(-4.0f, 2.0f, 0.0f);
 	sphereEntity1->SetRotation(0.0f, 0.0f, 0.0f);
 	sphereEntity1->SetScale(0.5f, 0.5f, 0.5f);
+
+	sphereEntity2 = new GameEntity(sphereMesh1);
+	sphereEntity2->SetPosition(0.0f, 2.0f, 0.0f);
+	sphereEntity2->SetRotation(0.0f, 0.0f, 0.0f);
+	sphereEntity2->SetScale(0.5f, 0.5f, 0.5f);
+
+	sphereEntity3 = new GameEntity(sphereMesh1);
+	sphereEntity3->SetPosition(4.0f, 2.0f, 0.0f);
+	sphereEntity3->SetRotation(0.0f, 0.0f, 0.0f);
+	sphereEntity3->SetScale(0.5f, 0.5f, 0.5f);
+
+	sphereEntity4 = new GameEntity(sphereMesh1);
+	sphereEntity4->SetPosition(-4.0f, -2.0f, 0.0f);
+	sphereEntity4->SetRotation(0.0f, 0.0f, 0.0f);
+	sphereEntity4->SetScale(0.5f, 0.5f, 0.5f);
+
+	sphereEntity5 = new GameEntity(sphereMesh1);
+	sphereEntity5->SetPosition(0.0f, -2.0f, 0.0f);
+	sphereEntity5->SetRotation(0.0f, 0.0f, 0.0f);
+	sphereEntity5->SetScale(0.5f, 0.5f, 0.5f);
+
+	sphereEntity6 = new GameEntity(sphereMesh1);
+	sphereEntity6->SetPosition(4.0f, -2.0f, 0.0f);
+	sphereEntity6->SetRotation(0.0f, 0.0f, 0.0f);
+	sphereEntity6->SetScale(0.5f, 0.5f, 0.5f);
 
 	skyMesh = new Mesh("Models/cube.obj", device);
 	skyEntity = new GameEntity(skyMesh);
@@ -219,7 +264,6 @@ void Game::LoadSkyBox()
 	device->CreateDepthStencilState(&depthStencilDesc, &skyDepthState);
 }
 
-
 void Game::OnResize()
 {
 	// Handle base-level DX resize stuff
@@ -234,6 +278,11 @@ void Game::Update(float deltaTime, float totalTime)
 	camera->Update(deltaTime);
 
 	sphereEntity1->UpdateWorldMatrix();
+	sphereEntity2->UpdateWorldMatrix();
+	sphereEntity3->UpdateWorldMatrix();
+	sphereEntity4->UpdateWorldMatrix();
+	sphereEntity5->UpdateWorldMatrix();
+	sphereEntity6->UpdateWorldMatrix();
 
 	// Quit if the escape key is pressed
 	if (GetAsyncKeyState(VK_ESCAPE))
@@ -253,7 +302,7 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
-	context->RSSetState(rsState);
+	//context->RSSetState(rsState);
 
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
@@ -261,6 +310,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	/**********************************************************************************/
 	/*DRAW SPHERE*/
 	/**********************************************************************************/
+
+	context->RSSetState(rsStateSolid);
 
 	ID3D11Buffer* vertexBuffer = sphereEntity1->GetMesh()->GetVertexBuffer();
 	ID3D11Buffer* indexBuffer = sphereEntity1->GetMesh()->GetIndexBuffer();
@@ -277,7 +328,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	tessVertexShader->SetShader();
 	tessVertexShader->CopyAllBufferData();
 
-	hullShader->SetFloat("tessellationAmount", 10.0f);
+	hullShader->SetFloat("tessellationAmount", 20.0f);
 	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
 	hullShader->SetShader();
 	hullShader->CopyAllBufferData();
@@ -285,11 +336,14 @@ void Game::Draw(float deltaTime, float totalTime)
 	
 	domainShader->SetMatrix4x4("view", camera->GetView());
 	domainShader->SetMatrix4x4("projection", camera->GetProjection());
-	domainShader->SetShaderResourceView("heightSRV", sphereHeightMapSRV);
-	domainShader->SetSamplerState("heightSampler", heightSampler);
+	domainShader->SetFloat("Hscale", 0.5f);
+	domainShader->SetFloat("Hbias", 1.0f);
+	domainShader->SetShaderResourceView("heightSRV", 0);
+	domainShader->SetSamplerState("heightSampler", 0);
 	domainShader->SetShader();
 	domainShader->CopyAllBufferData();
 
+	//tessPixelShader->SetData("dirLight", &DirLight1, sizeof(DirectionalLight));
 	tessPixelShader->SetShaderResourceView("textureSRV", sphereTextureSRV );
 	tessPixelShader->SetShaderResourceView("normalMapSRV", sphereNormalMapSRV );
 	tessPixelShader->SetSamplerState("basicSampler", sampler);
@@ -299,6 +353,227 @@ void Game::Draw(float deltaTime, float totalTime)
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
 	context->DrawIndexed(sphereEntity1->GetMesh()->GetIndexCount(), 0, 0);
+	/*******************************************************************************************/
+	/*SPHERE2*/
+	/********************************************************************************************/
+	context->RSSetState(rsStateSolid);
+
+	vertexBuffer = sphereEntity2->GetMesh()->GetVertexBuffer();
+	indexBuffer = sphereEntity2->GetMesh()->GetIndexBuffer();
+
+	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	vertexShader->SetShader();
+	vertexShader->CopyAllBufferData();
+	pixelShader->SetShader();
+	pixelShader->CopyAllBufferData();
+
+	tessVertexShader->SetMatrix4x4("world", *sphereEntity2->GetWorldMatrix());
+	tessVertexShader->SetShader();
+	tessVertexShader->CopyAllBufferData();
+
+	hullShader->SetFloat("tessellationAmount", 20.0f);
+	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	hullShader->SetShader();
+	hullShader->CopyAllBufferData();
+
+
+	domainShader->SetMatrix4x4("view", camera->GetView());
+	domainShader->SetMatrix4x4("projection", camera->GetProjection());
+	domainShader->SetFloat("Hscale", 0.5f);
+	domainShader->SetFloat("Hbias", 1.0f);
+	domainShader->SetShaderResourceView("heightSRV", sphereHeightMapSRV);
+	domainShader->SetSamplerState("heightSampler", heightSampler);
+	domainShader->SetShader();
+	domainShader->CopyAllBufferData();
+
+	tessPixelShader->SetShaderResourceView("textureSRV", sphereTextureSRV);
+	tessPixelShader->SetShaderResourceView("normalMapSRV", sphereNormalMapSRV);
+	tessPixelShader->SetSamplerState("basicSampler", sampler);
+	tessPixelShader->SetShader();
+	tessPixelShader->CopyAllBufferData();
+
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	context->DrawIndexed(sphereEntity2->GetMesh()->GetIndexCount(), 0, 0);
+
+	/*******************************************************************************************/
+	/*SPHERE3*/
+	/********************************************************************************************/
+	context->RSSetState(rsStateWire);
+
+	vertexBuffer = sphereEntity3->GetMesh()->GetVertexBuffer();
+	indexBuffer = sphereEntity3->GetMesh()->GetIndexBuffer();
+
+	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	vertexShader->SetShader();
+	vertexShader->CopyAllBufferData();
+	pixelShader->SetShader();
+	pixelShader->CopyAllBufferData();
+
+	tessVertexShader->SetMatrix4x4("world", *sphereEntity3->GetWorldMatrix());
+	tessVertexShader->SetShader();
+	tessVertexShader->CopyAllBufferData();
+
+	hullShader->SetFloat("tessellationAmount", 20.0f);
+	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	hullShader->SetShader();
+	hullShader->CopyAllBufferData();
+
+
+	domainShader->SetMatrix4x4("view", camera->GetView());
+	domainShader->SetMatrix4x4("projection", camera->GetProjection());
+	domainShader->SetFloat("Hscale", 0.5f);
+	domainShader->SetFloat("Hbias", 1.0f);
+	domainShader->SetShaderResourceView("heightSRV", sphereHeightMapSRV);
+	domainShader->SetSamplerState("heightSampler", heightSampler);
+	domainShader->SetShader();
+	domainShader->CopyAllBufferData();
+
+	tessPixelShader->SetShaderResourceView("textureSRV", sphereTextureSRV);
+	tessPixelShader->SetShaderResourceView("normalMapSRV", sphereNormalMapSRV);
+	tessPixelShader->SetSamplerState("basicSampler", sampler);
+	tessPixelShader->SetShader();
+	tessPixelShader->CopyAllBufferData();
+
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	context->DrawIndexed(sphereEntity3->GetMesh()->GetIndexCount(), 0, 0);
+	/*******************************************************************************************/
+	/*SPHERE4*/
+	/********************************************************************************************/
+	context->RSSetState(rsStateSolid);
+
+	vertexBuffer = sphereEntity4->GetMesh()->GetVertexBuffer();
+	indexBuffer = sphereEntity4->GetMesh()->GetIndexBuffer();
+
+	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	vertexShader->SetShader();
+	vertexShader->CopyAllBufferData();
+	pixelShader->SetShader();
+	pixelShader->CopyAllBufferData();
+
+	tessVertexShader->SetMatrix4x4("world", *sphereEntity4->GetWorldMatrix());
+	tessVertexShader->SetShader();
+	tessVertexShader->CopyAllBufferData();
+
+	hullShader->SetFloat("tessellationAmount", 2.0f);
+	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	hullShader->SetShader();
+	hullShader->CopyAllBufferData();
+
+
+	domainShader->SetMatrix4x4("view", camera->GetView());
+	domainShader->SetMatrix4x4("projection", camera->GetProjection());
+	domainShader->SetFloat("Hscale", 0.5f);
+	domainShader->SetFloat("Hbias", 1.0f);
+	domainShader->SetShaderResourceView("heightSRV", 0);
+	domainShader->SetSamplerState("heightSampler", 0);
+	domainShader->SetShader();
+	domainShader->CopyAllBufferData();
+
+	tessPixelShader->SetShaderResourceView("textureSRV", sphereTextureSRV);
+	tessPixelShader->SetShaderResourceView("normalMapSRV", sphereNormalMapSRV);
+	tessPixelShader->SetSamplerState("basicSampler", sampler);
+	tessPixelShader->SetShader();
+	tessPixelShader->CopyAllBufferData();
+
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	context->DrawIndexed(sphereEntity4->GetMesh()->GetIndexCount(), 0, 0);
+	/*******************************************************************************************/
+	/*SPHERE5*/
+	/********************************************************************************************/
+	context->RSSetState(rsStateSolid);
+
+	vertexBuffer = sphereEntity5->GetMesh()->GetVertexBuffer();
+	indexBuffer = sphereEntity5->GetMesh()->GetIndexBuffer();
+
+	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	vertexShader->SetShader();
+	vertexShader->CopyAllBufferData();
+	pixelShader->SetShader();
+	pixelShader->CopyAllBufferData();
+
+	tessVertexShader->SetMatrix4x4("world", *sphereEntity5->GetWorldMatrix());
+	tessVertexShader->SetShader();
+	tessVertexShader->CopyAllBufferData();
+
+	hullShader->SetFloat("tessellationAmount", 2.0f);
+	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	hullShader->SetShader();
+	hullShader->CopyAllBufferData();
+
+
+	domainShader->SetMatrix4x4("view", camera->GetView());
+	domainShader->SetMatrix4x4("projection", camera->GetProjection());
+	domainShader->SetFloat("Hscale", 0.5f);
+	domainShader->SetFloat("Hbias", 1.0f);
+	domainShader->SetShaderResourceView("heightSRV", sphereHeightMapSRV);
+	domainShader->SetSamplerState("heightSampler", heightSampler);
+	domainShader->SetShader();
+	domainShader->CopyAllBufferData();
+
+	tessPixelShader->SetShaderResourceView("textureSRV", sphereTextureSRV);
+	tessPixelShader->SetShaderResourceView("normalMapSRV", sphereNormalMapSRV);
+	tessPixelShader->SetSamplerState("basicSampler", sampler);
+	tessPixelShader->SetShader();
+	tessPixelShader->CopyAllBufferData();
+
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	context->DrawIndexed(sphereEntity5->GetMesh()->GetIndexCount(), 0, 0);
+	/*******************************************************************************************/
+	/*SPHERE6*/
+	/********************************************************************************************/
+	context->RSSetState(rsStateWire);
+
+	vertexBuffer = sphereEntity6->GetMesh()->GetVertexBuffer();
+	indexBuffer = sphereEntity6->GetMesh()->GetIndexBuffer();
+
+	context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+
+	vertexShader->SetShader();
+	vertexShader->CopyAllBufferData();
+	pixelShader->SetShader();
+	pixelShader->CopyAllBufferData();
+
+	tessVertexShader->SetMatrix4x4("world", *sphereEntity6->GetWorldMatrix());
+	tessVertexShader->SetShader();
+	tessVertexShader->CopyAllBufferData();
+
+	hullShader->SetFloat("tessellationAmount", 2.0f);
+	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	hullShader->SetShader();
+	hullShader->CopyAllBufferData();
+
+
+	domainShader->SetMatrix4x4("view", camera->GetView());
+	domainShader->SetMatrix4x4("projection", camera->GetProjection());
+	domainShader->SetFloat("Hscale", 0.5f);
+	domainShader->SetFloat("Hbias", 1.0f);
+	domainShader->SetShaderResourceView("heightSRV", sphereHeightMapSRV);
+	domainShader->SetSamplerState("heightSampler", heightSampler);
+	domainShader->SetShader();
+	domainShader->CopyAllBufferData();
+
+	tessPixelShader->SetShaderResourceView("textureSRV", sphereTextureSRV);
+	tessPixelShader->SetShaderResourceView("normalMapSRV", sphereNormalMapSRV);
+	tessPixelShader->SetSamplerState("basicSampler", sampler);
+	tessPixelShader->SetShader();
+	tessPixelShader->CopyAllBufferData();
+
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	context->DrawIndexed(sphereEntity6->GetMesh()->GetIndexCount(), 0, 0);
 
 	/********************************************************************************************/
 	/*DRAW SKYBOX*/

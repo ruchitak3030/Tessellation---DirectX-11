@@ -41,20 +41,24 @@ private:
 	Mesh* sphereMesh1;
 	Mesh* skyMesh;
 	GameEntity* sphereEntity1;
+	GameEntity* sphereEntity2;
+	GameEntity* sphereEntity3;
+	GameEntity* sphereEntity4;
+	GameEntity* sphereEntity5;
+	GameEntity* sphereEntity6;
 	GameEntity* skyEntity;
 	Camera* camera;
 
+
+	//Texture Stuff
 	ID3D11SamplerState* sampler;
 	ID3D11SamplerState* heightSampler;
 	ID3D11ShaderResourceView* sphereTextureSRV;
 	ID3D11ShaderResourceView* sphereNormalMapSRV;
 	ID3D11ShaderResourceView* sphereHeightMapSRV;
 	ID3D11ShaderResourceView* skyTextureSRV;
-	
 
-	// Buffers to hold actual geometry data
-	//ID3D11Buffer* vertexBuffer;
-	//ID3D11Buffer* indexBuffer;
+
 
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
@@ -66,7 +70,8 @@ private:
 	SimpleHullShader* hullShader;
 	SimpleDomainShader* domainShader;
 
-	ID3D11RasterizerState* rsState;
+	ID3D11RasterizerState* rsStateSolid;
+	ID3D11RasterizerState* rsStateWire;
 	ID3D11RasterizerState* skyRasterizerState;
 	ID3D11DepthStencilState* skyDepthState;
 

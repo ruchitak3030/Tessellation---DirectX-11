@@ -1,12 +1,20 @@
 Texture2D heightSRV			: register(t0);
 SamplerState heightSampler	: register(s0);
 
+
+
 cbuffer externalData : register(b0)
 {
 	//matrix world;
 	matrix view;
 	matrix projection;
 };
+
+cbuffer externalHeightMapData	: register(b1)
+{
+	float Hscale;
+	float Hbias;
+}
 
 struct DomainToPixel
 {
@@ -52,12 +60,8 @@ DomainToPixel main(
 	Output.normal = normalize(Output.normal);
 
 	//Height map calc
-	/*float hScale = 1.0f;
-	float hMap = heightSRV.SampleLevel(basicSampler, Output.uv, 0).r;
-	Output.worldPos += ((hScale * (hMap - 1.0f)) * Output.normal);*/
-
-	float hScale = 0.03f;
-	float hBias = 0.0f;
+	float hScale = Hscale;
+	float hBias = Hbias;
 	float3 vDir = Output.normal;
 	float hMap = heightSRV.SampleLevel(heightSampler, Output.uv.xy, 0).r;
 	hMap *= hScale;
