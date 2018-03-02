@@ -46,9 +46,10 @@ Game::~Game()
 	
 
 	sampler->Release();
+	heightSampler->Release();
 	sphereTextureSRV->Release();
 	sphereNormalMapSRV->Release();
-
+	sphereRoughMapSRV->Release();
 	
 
 	rsState->Release();
@@ -77,6 +78,8 @@ void Game::Init()
 	rasterDesc.SlopeScaledDepthBias = 0.0f;
 
 	device->CreateRasterizerState(&rasterDesc, &rsState);
+
+
 
 
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -139,6 +142,7 @@ void Game::LoadTextures()
 {
 	HRESULT r = CreateWICTextureFromFile(device, context, L"Textures/sphereRoughAlbedo.tif", 0, &sphereTextureSRV);
 	HRESULT l = CreateWICTextureFromFile(device, context, L"Textures/sphereRoughNormal.tif", 0, &sphereNormalMapSRV);
+	HRESULT s = CreateWICTextureFromFile(device, context, L"Textures/sphereHeightMap.tif", 0, &sphereRoughMapSRV);
 }
 
 void Game::LoadMaterials()
@@ -152,6 +156,23 @@ void Game::LoadMaterials()
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	device->CreateSamplerState(&samplerDesc, &sampler);
+
+	D3D11_SAMPLER_DESC heightSamplerDesc = {};
+	heightSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	heightSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	heightSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	heightSamplerDesc.BorderColor[0] = 0;
+	heightSamplerDesc.BorderColor[1] = 0;
+	heightSamplerDesc.BorderColor[2] = 0;
+	heightSamplerDesc.BorderColor[3] = 0;
+	heightSamplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	heightSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	heightSamplerDesc.MaxAnisotropy = 16;
+	heightSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	heightSamplerDesc.MinLOD = 0.0f;
+	heightSamplerDesc.MipLODBias = 0.0f;
+
+	device->CreateSamplerState(&heightSamplerDesc, &heightSampler);
 
 	sphereMaterial = new Material(pixelShader, vertexShader, sphereTextureSRV, sphereNormalMapSRV, sampler);
 	
@@ -211,7 +232,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	tessVertexShader->SetShader();
 	tessVertexShader->CopyAllBufferData();
 
-	hullShader->SetFloat("tessellationAmount", 20.0f);
+	hullShader->SetFloat("tessellationAmount", 10.0f);
 	hullShader->SetFloat3("padding", XMFLOAT3(0.0f, 0.0f, 0.0f));
 	hullShader->SetShader();
 	hullShader->CopyAllBufferData();
@@ -219,12 +240,14 @@ void Game::Draw(float deltaTime, float totalTime)
 	
 	domainShader->SetMatrix4x4("view", camera->GetView());
 	domainShader->SetMatrix4x4("projection", camera->GetProjection());
+	domainShader->SetShaderResourceView("heightSRV", sphereRoughMapSRV);
+	domainShader->SetSamplerState("heightSampler", heightSampler);
 	domainShader->SetShader();
 	domainShader->CopyAllBufferData();
 
 	tessPixelShader->SetShaderResourceView("textureSRV", sphereTextureSRV );
 	tessPixelShader->SetShaderResourceView("normalMapSRV", sphereNormalMapSRV );
-	tessPixelShader->SetSamplerState("basicSampler", sampler );
+	tessPixelShader->SetSamplerState("basicSampler", sampler);
 	tessPixelShader->SetShader();
 	tessPixelShader->CopyAllBufferData();
 

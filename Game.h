@@ -43,8 +43,10 @@ private:
 	Material* sphereMaterial;
 
 	ID3D11SamplerState* sampler;
+	ID3D11SamplerState* heightSampler;
 	ID3D11ShaderResourceView* sphereTextureSRV;
 	ID3D11ShaderResourceView* sphereNormalMapSRV;
+	ID3D11ShaderResourceView* sphereRoughMapSRV;
 
 	
 
