@@ -41,14 +41,13 @@ private:
 	Mesh* sphereMesh1;
 	Mesh* skyMesh;
 	GameEntity* sphereEntity1;
-	GameEntity* sphereEntity2;
-	GameEntity* sphereEntity3;
-	GameEntity* sphereEntity4;
-	GameEntity* sphereEntity5;
-	GameEntity* sphereEntity6;
 	GameEntity* skyEntity;
 	Camera* camera;
 
+	float tessellationAmount1;
+	int rsState;
+	float HScale;
+	float HBias;
 
 	//Texture Stuff
 	ID3D11SamplerState* sampler;

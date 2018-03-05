@@ -3,6 +3,8 @@
 #include <Windows.h>
 #include <d3d11.h>
 #include <string>
+#include "imgui\imgui.h"
+#include "imgui\imgui_impl_dx11.h"
 
 // We can include the correct library files here
 // instead of in Visual Studio settings if we want
